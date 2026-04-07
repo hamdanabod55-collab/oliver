@@ -1,0 +1,6 @@
+{
+  "/register/page": "app/register/page.js",
+  "/api/auth/customer/login/route": "app/api/auth/customer/login/route.js",
+  "/api/auth/customer/register/route": "app/api/auth/customer/register/route.js",
+  "/api/auth/customer/forgot-password/route": "app/api/auth/customer/forgot-password/route.js"
+}
