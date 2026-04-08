@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { createClient } from '@supabase/supabase-js'; // استبدال بريسما بـ سوبابيز
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { z } from 'zod';
+
+// إعداد سوبابيز باستخدام المتغيرات التي سحبها فيرسيل تلقائياً
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const loginSchema = z.object({
   username: z.string().min(1),
@@ -11,14 +16,12 @@ const loginSchema = z.object({
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'oliver_default_secret_key_123');
 
-// Simple Rate Limiting for Login
 const loginRateLimiter = new Map<string, { count: number, resetTime: number }>();
 const LOGIN_LIMIT = 5;
-const LOGIN_WINDOW = 15 * 60 * 1000; // 15 minutes
+const LOGIN_WINDOW = 15 * 60 * 1000;
 
 export async function POST(request: Request) {
   try {
-    // Rate Limiting
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     const now = Date.now();
     const userLimit = loginRateLimiter.get(ip);
@@ -41,13 +44,18 @@ export async function POST(request: Request) {
 
     const { username, password } = result.data;
 
-    const admin = await prisma.admin.findUnique({
-      where: { username },
-    });
+    // --- التعديل هنا: جلب البيانات باستخدام Supabase SDK بدلاً من Prisma ---
+    const { data: admin, error: dbError } = await supabase
+      .from('admin') // تأكد أن اسم الجدول في سوبابيز هو admin صغير
+      .select('*')
+      .eq('username', username)
+      .single();
 
-    if (!admin) {
+    if (dbError || !admin) {
+      console.error('Database error:', dbError);
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+    // -------------------------------------------------------------
 
     const passwordMatch = await bcrypt.compare(password, admin.password_hash);
 
@@ -67,7 +75,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: 60 * 60 * 24,
       path: '/',
     });
 
