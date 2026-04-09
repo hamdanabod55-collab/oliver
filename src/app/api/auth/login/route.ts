@@ -41,10 +41,10 @@ export async function POST(request: Request) {
 
     const { username, password } = result.data;
 
-    const { data: admin, error } = await supabase.from('Admin').select('*').eq('username', username).maybeSingle();
+    const { data: admin, error } = await supabase.from('admin').select('*').eq('username', username).maybeSingle();
 
     if (error) {
-        console.error('[Supabase Admin Login Error]', error);
+        console.error('[Supabase admin Login Error]', error);
         return NextResponse.json({ error: 'Database connection failed' }, { status: 503 });
     }
 
