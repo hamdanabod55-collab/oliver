@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const password_hash = await bcrypt.hash(password, 12);
 
     // Create user with error handling
-    const { data: user, error } = await supabase.from('User').insert([{
+    const { data: user, error } = await supabase.from('user').insert([{
         email,
         password_hash,
         name,
