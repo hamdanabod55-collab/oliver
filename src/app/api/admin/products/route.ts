@@ -15,9 +15,9 @@ const productSchema = z.object({
 
 export async function GET() {
   try {
-    const { data: products, error } = await supabase.from('Product').select('*').order('createdAt', { ascending: false });
+    const { data: products, error } = await supabase.from('product').select('*').order('createdAt', { ascending: false });
     if (error) {
-        console.error('[Supabase GET Products Error]', error);
+        console.error('[Supabase GET products Error]', error);
         return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
     }
     return NextResponse.json(products);
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       subcategory: result.data.subcategory || null
     };
 
-    const { data: product, error: insertError } = await supabase.from('Product').insert([data]).select().single();
+    const { data: product, error: insertError } = await supabase.from('product').insert([data]).select().single();
 
     if (insertError) {
         throw insertError;
