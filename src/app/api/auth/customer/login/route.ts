@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const { email, password } = result.data;
 
     // Find user
-    const { data: user, error } = await supabase.from('User').select('*').eq('email', email).maybeSingle();
+    const { data: user, error } = await supabase.from('user').select('*').eq('email', email).maybeSingle();
 
     if (error) {
         console.error('[Supabase Login Select Error]', error);
