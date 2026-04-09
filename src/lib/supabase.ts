@@ -1,13 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_ANON_KEY
- || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('Supabase URL or Key is missing. Check your environment variables.');
-}
+export const supabase = createClient(supabaseUrl, supabaseKey); // هذا يخلي اللي يستخدم الأقواس { } يشتغل
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-export default supabase;
+export default supabase; // وهذا يخلي اللي ما يستخدم أقواس يشتغل
