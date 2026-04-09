@@ -2,18 +2,15 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import BentoGrid from '@/components/BentoGrid';
 import ProductCard from '@/components/ProductCard';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 import Link from 'next/link';
 
 export default async function Home() {
     let featuredProducts: any[] = [];
     
     try {
-        featuredProducts = await prisma.product.findMany({
-            where: { isFeatured: true },
-            take: 4,
-            orderBy: { createdAt: 'desc' }
-        });
+        const { data } = await supabase.from('Product').select('*').eq('isFeatured', true).order('createdAt', { ascending: false }).limit(4);
+        if (data) featuredProducts = data;
     } catch (error) {
         console.error("Failed to fetch featured products:", error);
     }

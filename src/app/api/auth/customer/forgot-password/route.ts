@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 import { SignJWT } from 'jose';
 import { z } from 'zod';
 
@@ -23,9 +23,12 @@ export async function POST(request: Request) {
     const { email } = result.data;
 
     // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const { data: user, error } = await supabase.from('User').select('id').eq('email', email).maybeSingle();
+
+    if (error) {
+        console.error('[Supabase ForgotPassword Error]', error);
+        return NextResponse.json({ error: 'حدث خطأ في قاعدة البيانات' }, { status: 503 });
+    }
 
     // SECURITY: Always return success to prevent email enumeration
     if (!user) {

@@ -35,16 +35,18 @@ export default function RegisterPage() {
                 }),
             });
 
-            const data = await res.json();
+            const data = await res.json().catch(() => null);
 
-            if (res.ok) {
+            if (res.ok && data?.success) {
                 setSuccess('تم إنشاء الحساب بنجاح! جاري تحويلك...');
+                setFormData({ name: '', email: '', password: '', confirmPassword: '' })
                 setTimeout(() => router.push('/login'), 2000);
             } else {
-                setError(data.error || 'فشل التسجيل');
+                setError(data?.error || 'فشل التسجيل. حاول مرة أخرى.');
             }
         } catch (err) {
-            setError('حدث خطأ في الاتصال بالسيرفر');
+            console.error('[Registration Frontend Error]', err);
+            setError('خطأ في الاتصال بالشبكة. يرجى المحاولة مرة أخرى.');
         } finally {
             setLoading(false);
         }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 
 export async function GET() {
   try {
@@ -46,20 +46,10 @@ export async function GET() {
       }
     ];
 
-    for (const product of products) {
-      await prisma.product.upsert({
-        where: { id: 0 }, // This is a trick to always upsert by name or just create
-        update: {},
-        create: product,
-        // Since we don't have a unique name field yet, we'll just use a small check or just create
-      });
-    }
-
-    // A better way to avoid duplicates if we don't have unique constraint:
     for (const p of products) {
-        const exists = await prisma.product.findFirst({ where: { name: p.name } });
+        const { data: exists } = await supabase.from('Product').select('id').eq('name', p.name).maybeSingle();
         if (!exists) {
-            await prisma.product.create({ data: p });
+            await supabase.from('Product').insert([p]);
         }
     }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
@@ -16,35 +16,40 @@ export async function POST(request: Request) {
 
     if (!result.success) {
       return NextResponse.json({ 
+        success: false,
         error: result.error.issues[0].message 
       }, { status: 400 });
     }
 
     const { email, password, name } = result.data;
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json({ 
-        error: 'البريد الإلكتروني مسجل بالفعل' 
-      }, { status: 400 });
-    }
-
     // Hash password
     const password_hash = await bcrypt.hash(password, 12);
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
+    // Create user with error handling
+    const { data: user, error } = await supabase.from('User').insert([{
         email,
         password_hash,
         name,
-      },
-    });
+    }]).select('id').single();
 
+    if (error) {
+      console.error('[Registration Error - Supabase]', error);
+      
+      // PostgreSQL unique constraint violation code
+      if (error.code === '23505') {
+        return NextResponse.json({ 
+          success: false,
+          error: 'البريد الإلكتروني مسجل بالفعل' 
+        }, { status: 400 });
+      }
+
+      return NextResponse.json({ 
+        success: false,
+        error: 'حدث خطأ في قاعدة البيانات. حاول مرة أخرى.' 
+      }, { status: 503 });
+    }
+    
     return NextResponse.json({ 
       success: true, 
       message: 'تم إنشاء الحساب بنجاح',
@@ -52,9 +57,15 @@ export async function POST(request: Request) {
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('Registration error:', error);
+    // Structured logic for Vercel
+    console.error('[Registration Network/Internal Error]', {
+      message: error.message,
+      stack: error.stack
+    });
+
     return NextResponse.json({ 
-      error: 'حدث خطأ داخلي في الخادم' 
+      success: false,
+      error: 'حدث خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى.' 
     }, { status: 500 });
   }
 }

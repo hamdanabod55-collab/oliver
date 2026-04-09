@@ -1,18 +1,17 @@
 import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 
 export default async function MensWatchesPage() {
     let products: any[] = [];
     
     try {
-        products = await prisma.product.findMany({
-            where: {
-                category: 'accessories',
-                subcategory: 'Men'
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const { data } = await supabase.from('Product')
+            .select('*')
+            .eq('category', 'accessories')
+            .eq('subcategory', 'Men')
+            .order('createdAt', { ascending: false });
+        if (data) products = data;
     } catch (error) {
         console.error("Failed to fetch mens watches:", error);
     }

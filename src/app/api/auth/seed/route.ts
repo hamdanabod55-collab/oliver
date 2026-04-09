@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
 
 export async function GET() {
@@ -12,16 +12,16 @@ export async function GET() {
     const password = 'oliver782828113@$';
     const password_hash = await bcrypt.hash(password, 10);
 
-    const admin = await prisma.admin.upsert({
-      where: { username },
-      update: {},
-      create: {
-        username,
-        password_hash,
-      },
-    });
+    const { data: adminExists } = await supabase.from('Admin').select('id').eq('username', username).maybeSingle();
 
-    return NextResponse.json({ success: true, message: `Admin ${admin.username} initialized.` });
+    if (!adminExists) {
+        await supabase.from('Admin').insert([{
+            username,
+            password_hash,
+        }]);
+    }
+
+    return NextResponse.json({ success: true, message: `Admin ${username} initialized.` });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

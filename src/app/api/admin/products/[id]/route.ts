@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 import { z } from 'zod';
 
 const productSchema = z.object({
@@ -33,10 +33,9 @@ export async function PUT(
       subcategory: result.data.subcategory === "" ? null : result.data.subcategory
     };
 
-    const product = await prisma.product.update({
-      where: { id },
-      data,
-    });
+    const { data: product, error: updateError } = await supabase.from('Product').update(data).eq('id', id).select().single();
+
+    if (updateError) throw updateError;
 
     return NextResponse.json(product);
   } catch (error: any) {
@@ -55,9 +54,10 @@ export async function DELETE(
   try {
     const id = parseInt(params.id);
     console.log('API DELETE - Attempting to delete product ID:', id);
-    await prisma.product.delete({
-      where: { id },
-    });
+    const { error: deleteError } = await supabase.from('Product').delete().eq('id', id);
+
+    if (deleteError) throw deleteError;
+
     return NextResponse.json({ success: true, message: 'تم حذف المنتج بنجاح' });
   } catch (error: any) {
     console.error('API DELETE - Error:', error);

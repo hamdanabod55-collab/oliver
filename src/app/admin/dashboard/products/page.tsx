@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
 
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<any[]>([]);
@@ -51,26 +52,69 @@ export default function AdminProductsPage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setIsUploading(true);
-        const uploadData = new FormData();
-        uploadData.append('file', file);
+        // 1. File Type Validation
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            showToast('صيغة الملف غير مدعومة. يرجى رفع صورة بصيغة jpg، png، أو webp', 'error');
+            // reset input
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
 
+        // 2. File Size Validation (Max 4MB)
+        const maxSize = 4 * 1024 * 1024;
+        if (file.size > maxSize) {
+            showToast('حجم الصورة كبير جداً. الحد الأقصى هو 4 ميجابايت', 'error');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        setIsUploading(true);
         try {
-            const res = await fetch('/api/admin/upload', {
-                method: 'POST',
-                body: uploadData
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setFormData({ ...formData, image_url: data.url });
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseKey) {
+                console.error("Missing Supabase environment variables.");
+                showToast('إعدادات الخادم مفقودة للصور. يرجى مراجعة الدعم الفني.', 'error');
+                setIsUploading(false);
+                return;
+            }
+
+            const supabaseBrowser = createClient(supabaseUrl, supabaseKey);
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`;
+
+            const { data, error } = await supabaseBrowser.storage
+                .from('products')
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (error) {
+                console.error('[Supabase Upload Error]', error);
+                showToast(error.message || 'فشل رفع الصورة', 'error');
+                return;
+            }
+
+            const { data: publicUrlData } = supabaseBrowser.storage
+                .from('products')
+                .getPublicUrl(fileName);
+
+            if (publicUrlData && publicUrlData.publicUrl) {
+                setFormData({ ...formData, image_url: publicUrlData.publicUrl });
                 showToast('تم رفع الصورة بنجاح', 'success');
             } else {
-                showToast(data.error || 'فشل رفع الصورة', 'error');
+                showToast('فشل الحصول على رابط الصورة', 'error');
             }
         } catch (error) {
-            showToast('حدث خطأ أثناء الرفع', 'error');
+            console.error('[Upload Network Error]', error);
+            showToast('حدث خطأ بالشبكة أثناء الرفع', 'error');
         } finally {
             setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 

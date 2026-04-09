@@ -1,5 +1,5 @@
 import Navbar from '@/components/Navbar';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import ProductActions from '@/components/ProductActions';
 
@@ -7,9 +7,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     const id = parseInt(params.id);
     if (isNaN(id)) notFound();
 
-    const product = await prisma.product.findUnique({
-        where: { id }
-    });
+    const { data: product } = await supabase.from('Product').select('*').eq('id', id).maybeSingle();
 
     if (!product) notFound();
 

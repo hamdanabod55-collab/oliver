@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import DOMPurify from 'isomorphic-dompurify';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 
 // 1. Zod Schema for Validation
 const checkoutSchema = z.object({
@@ -82,17 +82,17 @@ export async function POST(req: Request) {
 
         // 6. Save to Database
         try {
-            await prisma.order.create({
-                data: {
-                    customer_name: sanitizedName,
-                    customer_phone: data.phone,
-                    city: sanitizedCity,
-                    address: sanitizedAddress,
-                    total_price: subtotal,
-                    items: JSON.stringify(data.cart),
-                    status: 'PENDING'
-                }
-            });
+            const { error: dbError } = await supabase.from('Order').insert([{
+                customer_name: sanitizedName,
+                customer_phone: data.phone,
+                city: sanitizedCity,
+                address: sanitizedAddress,
+                total_price: subtotal,
+                items: JSON.stringify(data.cart),
+                status: 'PENDING'
+            }]);
+            
+            if (dbError) throw dbError;
         } catch (dbError) {
             console.error("Database Save Error:", dbError);
             // We still proceed to WhatsApp even if DB fails for now, or you can opt to throw error
